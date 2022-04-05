@@ -2,24 +2,44 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 func ping(url string, c chan string) {
 	_, err := http.Get(url)
 
 	if err == nil {
-		fmt.Println(url + " it's OK!")
+		c <- url + " it's OK!"
 	} else {
-		fmt.Println(url + " it's not working")
+		c <- ""
 	}
-	close(c)
 }
 
 func main() {
-	c := make(chan string)
-	go ping("http://www.google.com", c)
+	for {
+		c := make(chan string)
 
-	result, _ := <-c
-	fmt.Println(result)
+		urls := [2]string{"http://www.error.error.kl", "http://twitter.com"}
+
+		rand.Seed(time.Now().UnixNano())
+		i := rand.Intn(2)
+
+		go ping("http://www.google.com", c)
+		go ping("http://www.facebook.com", c)
+		go ping(urls[i], c)
+
+		google, facebook, br := <-c, <-c, <-c
+
+		if (google != "") && (facebook != "") && (br != "") {
+			fmt.Println("GOOD TO GO!")
+		} else {
+			fmt.Println("Something went wrong")
+		}
+
+		fmt.Println("")
+
+		time.Sleep(100 * time.Millisecond)
+	}
 }
